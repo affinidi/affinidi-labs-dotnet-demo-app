@@ -1,0 +1,62 @@
+@page
+@model Affinidi_Login_Demo_App.Pages.IotaModel
+@{
+    ViewData["Title"] = "Affinidi Iota Framework";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-lg border-0">
+                <div class="card-header bg-dark text-white text-center">
+                    <h3 class="mb-0">@ViewData["Title"]</h3>
+                </div>
+                <div class="card-body p-5 text-center">
+                    <p class="lead mb-4">Select a sharing type to demonstrate different sharing flows using the Iota
+                        Framework.</p>
+
+                    @if (TempData["VpToken"] != null)
+                    {
+                        <div class="alert alert-success d-flex align-items-center justify-content-center py-4 rounded-3">
+                            VP Token (JSON)
+                        </div>
+                        <div>
+                            <p>@TempData["IotaMessage"]</p>
+                            <pre class="bg-light p-3 text-start rounded"
+                                style="white-space: pre-wrap; word-break: break-word;">
+                                                @TempData["VpToken"]
+                                        </pre>
+                        </div>
+                    }
+                    else
+                    {
+                        <form method="post">
+                            <div class="d-grid gap-3">
+                                <button asp-page-handler="SharePersonalInfo"
+                                    class="btn btn-success btn-lg btn-credential w-100" type="submit">
+                                    Share Personal Information Credential
+                                </button>
+                                <button asp-page-handler="ShareAddress"
+                                    class="btn btn-secondary btn-lg w-100" type="submit">
+                                    Share Address Credential
+                                </button>
+                                <button asp-page-handler="ShareEmployment"
+                                    class="btn btn-success btn-lg w-100" type="submit">
+                                    Share Employment Credential
+                                </button>
+                                <button asp-page-handler="ShareEducation"
+                                    class="btn btn-warning btn-lg text-dark w-100" type="submit">
+                                    Share Educational Credentials
+                                </button>
+                                <button asp-page-handler="ShareSelective"
+                                    class="btn btn-info btn-lg text-dark w-100" type="submit">
+                                    Selective Sharing Credentials
+                                </button>
+                            </div>
+                        </form>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

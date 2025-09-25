@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Affinidi_Login_Demo_App</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AffinidiTdk.AuthProvider" Version="1.0.6" />
+    <PackageReference Include="AffinidiTdk.Common" Version="1.0.6" />
+    <PackageReference Include="AffinidiTdk.CredentialIssuanceClient" Version="0.0.6" />
+    <PackageReference Include="AffinidiTdk.CredentialVerificationClient" Version="0.0.6" />
+    <PackageReference Include="AffinidiTdk.IotaClient" Version="0.0.6" />
+    <PackageReference Include="DotNetEnv" Version="3.1.1" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="8.0.5" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,43 @@
+﻿@page
+@model Affinidi_Login_Demo_App.UserDetailModel
+@{
+    ViewData["Title"] = "User Details";
+}
+<!-- Needed so that POSTs send an anti-forgery token -->
+@addTagHelper*, Microsoft.AspNetCore.Mvc.TagHelpers
+
+@{
+    string? name = !string.IsNullOrEmpty(Model.Username) ? Model.Username : Model.Email;
+}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-lg border-0">
+                <div class="card-header bg-dark text-white text-center">
+                    <h3 class="mb-0">User Logged-in Details</h3>
+                </div>
+                <div class="card-body p-4">
+                    <dl class="row mb-4">
+                        <dt class="col-sm-3">Welcome:</dt>
+                        <dd class="col-sm-9">@name</dd>
+
+                        <dt class="col-sm-3">Email:</dt>
+                        <dd class="col-sm-9">@Model.Email</dd>
+
+                        <dt class="col-sm-3">Your DID:</dt>
+                        <dd class="col-sm-9 text-break">@Model.DID</dd>
+                    </dl>
+
+                    @if (!string.IsNullOrEmpty(Model.AccessToken))
+                    {
+                        <div class="text-center">
+                            <form method="post">
+                                <button class="btn btn-danger" value="Logout" asp-page-handler="Logout">Clear Cookies &amp; Logout</button>
+                            </form>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

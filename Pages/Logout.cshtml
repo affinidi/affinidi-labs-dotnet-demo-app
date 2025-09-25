@@ -1,0 +1,51 @@
+﻿@page
+@model Affinidi_Login_Demo_App.LogoutModel
+@{
+    ViewData["Title"] = "Logged Out";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-lg border-0 text-center">
+                <div class="card-header bg-dark text-white">
+                    <h3 class="mb-0">Logout</h3>
+                </div>
+                <div class="card-body p-5">
+                    @if (Model.loggedOut)
+                    {
+                        <h4 class="card-title">You have been successfully logged out.</h4>
+                    }
+                    <p class="card-text text-muted mt-3">
+                        Redirecting to the <a href="/Index">Home page</a> in <span id="countdown">5</span> seconds...
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            // Set the initial countdown value
+            var seconds = 5;
+            var countdownElement = document.getElementById("countdown");
+
+            // Function to update the countdown and redirect after reaching zero
+            function updateCountdown() {
+                if (countdownElement) {
+                    countdownElement.innerText = seconds;
+                }
+                if (seconds === 0) {
+                    window.location.href = "/Index";
+                } else {
+                    seconds--;
+                    setTimeout(updateCountdown, 1000);
+                }
+            }
+            // Initial call to start the countdown
+            updateCountdown();
+        })();
+    </script>
+}
