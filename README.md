@@ -97,21 +97,27 @@ dotnet --version
 
 ## 📦 Installing Dependencies
 
-> **Important:**
-> The Affinidi TDK packages are currently distributed as local `.nupkg` files. In the future, these packages will be published to NuGet, and you will be able to install them directly from the public NuGet repository. Follow the appropriate instructions below based on your scenario.
 
 ### Option 1: Install from NuGet (Recommended for Future)
 
-Once the Affinidi packages are published to NuGet, install all dependencies with:
+> **Note:** Mandatory Package to install
 
 ```sh
 dotnet add package DotNetEnv --version 3.1.1
 dotnet add package Microsoft.AspNetCore.Authentication.OpenIdConnect --version 8.0.5
-dotnet add package AffinidiTdk.AuthProvider --version 1.0.6
-dotnet add package AffinidiTdk.Common --version 1.0.6
-dotnet add package AffinidiTdk.CredentialIssuanceClient --version 0.0.6
-dotnet add package AffinidiTdk.CredentialVerificationClient --version 0.0.6
-dotnet add package AffinidiTdk.IotaClient --version 0.0.6
+```
+
+> **Important:**
+> The Affinidi TDK packages are currently distributed as local `.nupkg` files. In the future, these packages will be published to NuGet, and you will be able to install them directly from the public NuGet repository. Follow the appropriate instructions below based on your scenario.
+
+Once the Affinidi packages are published to NuGet, install all dependencies with:
+
+```sh
+dotnet add package AffinidiTdk.AuthProvider --version 1.0.0
+dotnet add package AffinidiTdk.Common --version 1.0.0
+dotnet add package AffinidiTdk.CredentialIssuanceClient --version 1.0.0
+dotnet add package AffinidiTdk.CredentialVerificationClient --version 1.0.0
+dotnet add package AffinidiTdk.IotaClient --version 1.0.0
 ```
 
 > **Note:** Use the latest version numbers as published on NuGet.
@@ -174,8 +180,6 @@ dotnet add package AffinidiTdk.IotaClient --version 0.0.6 --source $(pwd)/librar
 dotnet restore
 ```
 
----
-
 ## ⚙️ Environment Setup
 
 ### 1. Copy Example Environment Files
@@ -190,7 +194,6 @@ cp .env.example .env
 
 Edit the newly created `.env` file and update the values as needed to enable Affinidi features and provide your configuration.
 
----
 
 **Get started:**
 ```sh
