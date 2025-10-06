@@ -1,4 +1,4 @@
-# 🚀 Affinidi .NET Reference App
+# 🚀 Affinidi .NET Demo App
 
 <div align="center">
   <img src="./docs/images/Affinidi%20Stacked_FC_RGB.jpg" alt="Affinidi Logo" width="180"/>
@@ -62,10 +62,16 @@ Explore these features with step-by-step guides and official documentation:
   - [Enable Affinidi Iota framework in Reference App](./docs/setup-iota-config.md)
   - [Affinidi Iota Framework Documentation](https://docs.affinidi.com/docs/affinidi-elements/iota/)
 
+
 - 🛡️ **Identity Verification (IDV)**
   Verify user identity using Affinidi’s IDV service.
+
+  > **Note:** Affinidi IDV is currently in **closed beta** and is only available to customers who requested to enable it. Please reach out to your Affinidi account manager to request access to this feature.
+
   - [Enable Affinidi IDV in Reference App](./docs/setup-idv-config.md)
   - [Affinidi IDV Documentation](https://docs.affinidi.com/docs/affinidi-vault/identity-verification/)
+
+
 
 - 🗄️ **Affinidi Vault Integration**
   Store and manage credentials securely in Affinidi Vault.
@@ -231,7 +237,7 @@ See our [Privacy Notice](https://www.affinidi.com/privacy-notice) for details.
 
 ## Feedback, Support, and Community
 
-[Click here](https://github.com/affinidi/reference-app-affinidi-vault/issues) to create a ticket and we will get on it right away. If you are facing technical or other issues, you can [Contact Support](https://share.hsforms.com/1i-4HKZRXSsmENzXtPdIG4g8oa2v).
+[Click here](https://github.com/affinidi/affinidi-labs-dotnet-demo-app/issues) to create a ticket and we will get on it right away. If you are facing technical or other issues, you can [Contact Support](https://share.hsforms.com/1i-4HKZRXSsmENzXtPdIG4g8oa2v).
 
 
 ## FAQ
