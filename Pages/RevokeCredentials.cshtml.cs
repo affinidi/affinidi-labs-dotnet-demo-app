@@ -2,9 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.ComponentModel.DataAnnotations;
 using Affinidi_Login_Demo_App.Util;
-using Newtonsoft.Json;
-using AffinidiTdk.CredentialIssuanceClient.Model;
-using Newtonsoft.Json.Linq;
+using System.Threading.Tasks;
 
 namespace Affinidi_Login_Demo_App.Pages
 {
@@ -33,131 +31,58 @@ namespace Affinidi_Login_Demo_App.Pages
 
             try
             {
-                var projectId = Environment.GetEnvironmentVariable("PROJECT_ID") ?? string.Empty;
-                var configurationId = Environment.GetEnvironmentVariable("CONFIGURATION_ID") ?? string.Empty;
-                var credentialsClient = new CredentialsClient(projectId, configurationId);
+                var revokeClient = new RevokeClient();
 
-                Console.WriteLine($"[Revoke] Fetching issuance records for projectId: {projectId}, configurationId: {configurationId}");
+                var listdataResponse = await revokeClient.ListIssuanceRecordsAsync();
+                string? issuanceRecordId = null;
 
-                var listdataResponseObj = await credentialsClient.ListIssuanceRecordsAsync(
-                    projectId,
-                    configurationId,
-                    null,
-                    null
-                );
-
-                // Find all flowIds matching the given IssuanceId
-                var flowIdsToRevoke = new List<string>();
-
-                // Use JObject to parse the response
-                var listdataResponseJson = JsonConvert.SerializeObject(listdataResponseObj);
-                var listdataResponseJObj = JObject.Parse(listdataResponseJson);
-
-                var flowDataArray = listdataResponseJObj["flowData"] as JArray;
-
-                if (flowDataArray != null)
+                if (listdataResponse?.FlowData != null)
                 {
-                    foreach (var item in flowDataArray)
+                    foreach (var item in listdataResponse.FlowData)
                     {
-                        var flowId = item["flowId"]?.ToString()?.Trim();
-                        var id = item["id"]?.ToString();
+                        // Deserialize each item to a dictionary for dynamic access
+                        var dict = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(
+                            item.ToString() ?? "{}"
+                        );
 
-                        Console.WriteLine($"[Revoke] flowId in record: '{flowId}', IssuanceId: '{IssuanceId?.Trim()}', id: '{id}'");
-
-                        if (!string.IsNullOrEmpty(flowId) && flowId == IssuanceId?.Trim() && !string.IsNullOrEmpty(id))
+                        if (dict != null &&
+                            dict.TryGetValue("flowId", out var flowIdObj) &&
+                            flowIdObj?.ToString() == IssuanceId &&
+                            dict.TryGetValue("id", out var idObj))
                         {
-                            flowIdsToRevoke.Add(id);
-                            Console.WriteLine($"[Revoke] Matched! Added id: {id}");
-                        }
-                        else
-                        {
-                            Console.WriteLine($"[Revoke] No match for this record.");
+                            issuanceRecordId = idObj?.ToString();
+                            break;
                         }
                     }
                 }
 
-                Console.WriteLine($"[Revoke] Found {flowIdsToRevoke.Count} issuance record(s) for IssuanceId: {IssuanceId}");
-
-                if (flowIdsToRevoke.Count == 0)
+                if (string.IsNullOrEmpty(issuanceRecordId))
                 {
-                    ModelState.AddModelError(string.Empty, "Issuance ID not found in records.");
+                    ModelState.AddModelError(string.Empty, "Issuance Record ID not found for the provided Issuance ID.");
                     return Page();
                 }
 
-                int successCount = 0;
-                int failCount = 0;
-                List<string> statusPurposes = new List<string>();
-
-                foreach (var issuanceRecordId in flowIdsToRevoke)
+                var input = new RevokeCredentialInput
                 {
-                    ChangeCredentialStatusInput.ChangeReasonEnum parsedReason;
-                    if (!Enum.TryParse(RevocationReason?.Replace(" ", "").Replace("_", "").ToUpper(), out parsedReason))
-                    {
-                        ModelState.AddModelError(string.Empty, "Invalid revocation reason. Allowed: INVALID_CREDENTIAL or COMPROMISED_ISSUER");
-                        return Page();
-                    }
+                    ChangeReason = RevocationReason!,
+                    IssuanceRecordId = issuanceRecordId
+                };
 
-                    var input = new ChangeCredentialStatusInput
-                    {
-                        ChangeReason = parsedReason,
-                        IssuanceRecordId = issuanceRecordId
-                    };
+                var response = await revokeClient.RevokeCredentialAsync(input);
 
-                    Console.WriteLine($"[Revoke] Attempting revocation for IssuanceRecordId: {issuanceRecordId} with reason: {RevocationReason}");
-
-                    var response = await credentialsClient.RevokeCredentialAsync(
-                        projectId,
-                        configurationId,
-                        input
-                    );
-
-                    var responseJson = JsonConvert.SerializeObject(response);
-                    var responseObj = JObject.Parse(responseJson);
-
-                    string statusPurpose = "";
-                    string statusListsDetailsStr = "";
-
-                    if (responseObj["statusListsDetails"] != null)
-                    {
-                        var statusListsDetailsToken = responseObj["statusListsDetails"];
-                        statusListsDetailsStr = statusListsDetailsToken != null ? statusListsDetailsToken.ToString(Formatting.Indented) : string.Empty;
-                        var statusLists = statusListsDetailsToken as JArray;
-                        if (statusLists != null && statusLists.Count > 0)
-                        {
-                            var firstStatus = statusLists[0];
-                            statusPurpose = firstStatus["statusListPurpose"]?.ToString() ?? "";
-                        }
-                    }
-
-                    if (responseObj["id"] != null)
-                    {
-                        Console.WriteLine($"[Revoke] Successfully revoked IssuanceRecordId: {issuanceRecordId}, Status Purpose: {statusPurpose}");
-                        successCount++;
-                        statusPurposes.Add(statusPurpose);
-                        // Collect statusListsDetails for frontend
-                        TempData["StatusListsDetails"] = statusListsDetailsStr;
-                    }
-                    else
-                    {
-                        Console.WriteLine($"[Revoke] Failed to revoke IssuanceRecordId: {issuanceRecordId}");
-                        failCount++;
-                    }
-                }
-
-                if (successCount > 0)
+                if (response != null && !string.IsNullOrWhiteSpace(response.Id))
                 {
                     TempData["SuccessMessage"] =
-                        $"Successfully revoked {successCount} credential(s) for Issuance ID '{IssuanceId}'. Status Purpose(s): {string.Join(", ", statusPurposes)}";
+                        $"Credential with Issuance ID '{IssuanceId}' has been successfully revoked. Status Purpose: {response.StatusListsDetails?[0]?.StatusListPurpose}";
                 }
                 else
                 {
-                    ModelState.AddModelError(string.Empty, "Failed to revoke credential(s). Please check the Issuance ID and try again.");
+                    ModelState.AddModelError(string.Empty, "Failed to revoke credential. Please check the Issuance ID and try again.");
                     return Page();
                 }
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
-                Console.WriteLine($"[Revoke] Exception: {ex}");
                 ModelState.AddModelError(string.Empty, $"Error revoking credential: {ex.Message}");
                 return Page();
             }

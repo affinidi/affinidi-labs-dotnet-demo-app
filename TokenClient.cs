@@ -1,14 +1,14 @@
 ﻿using System.Collections.Generic;
 using System.Net.Http;
+using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
-using Newtonsoft.Json.Linq;
 
-namespace Affinidi_Login_Demo_App
-{
-    /*
+namespace Affinidi_Login_Demo_App;
+
+ /*
      * A utility class for working with tokens
      */
     public class TokenClient
@@ -29,7 +29,7 @@ namespace Affinidi_Login_Demo_App
          */
         public async Task<string> GetAccessToken(HttpContext context)
         {
-            return await context.GetTokenAsync(ACCESS_TOKEN) ?? string.Empty;
+            return await context.GetTokenAsync(ACCESS_TOKEN);
         }
 
         /*
@@ -37,13 +37,13 @@ namespace Affinidi_Login_Demo_App
          */
         public async Task<string> GetRefreshToken(HttpContext context)
         {
-            return await context.GetTokenAsync(REFRESH_TOKEN) ?? string.Empty;
+            return await context.GetTokenAsync(REFRESH_TOKEN);
         }
-
+        
         /*
          * Do the work of getting new tokens and updating cookies
          */
-        public async Task RefreshAccessToken(HttpContext context)
+        public async  Task RefreshAccessToken(HttpContext context)
         {
             var tokens = await this.RefreshTokens(context);
             await RewriteCookies(tokens, context);
@@ -52,13 +52,13 @@ namespace Affinidi_Login_Demo_App
         /*
          * Send the refresh token grant message
          */
-        private async Task<JObject> RefreshTokens(HttpContext context)
+        private async Task<JsonNode> RefreshTokens(HttpContext context)
         {
-            var tokenEndpoint = this.configuration.GetValue<string>("OpenIdConnect:TokenEndpoint") ?? string.Empty;
-
-            var clientId = this.configuration.GetValue<string>("OpenIdConnect:ClientId") ?? string.Empty;
-            var clientSecret = this.configuration.GetValue<string>("OpenIdConnect:ClientSecret") ?? string.Empty;
-            var refreshToken = await context.GetTokenAsync(REFRESH_TOKEN) ?? string.Empty;
+            var tokenEndpoint = this.configuration.GetValue<string>("OpenIdConnect:TokenEndpoint");
+            
+            var clientId = this.configuration.GetValue<string>("OpenIdConnect:ClientId");
+            var clientSecret = this.configuration.GetValue<string>("OpenIdConnect:ClientSecret");
+            var refreshToken = await context.GetTokenAsync(REFRESH_TOKEN);
 
             var requestData = new[]
             {
@@ -71,56 +71,45 @@ namespace Affinidi_Login_Demo_App
             using (var client = new HttpClient())
             {
                 client.DefaultRequestHeaders.Add("accept", "application/json");
-
+                
                 var response = await client.PostAsync(tokenEndpoint, new FormUrlEncodedContent(requestData));
                 response.EnsureSuccessStatusCode();
 
                 var json = await response.Content.ReadAsStringAsync();
-                var node = JObject.Parse(json);
-                if (node == null)
-                {
-                    throw new InvalidOperationException("Failed to parse JSON response.");
-                }
-                return node;
+                return JsonNode.Parse(json).AsObject();
             }
         }
 
         /*
          * Write updated cookies with new tokens
          */
-        private async Task RewriteCookies(JObject tokens, HttpContext context)
-        {
-            var accessToken = tokens[ACCESS_TOKEN]?.ToString() ?? string.Empty;
+        private async Task RewriteCookies(JsonNode tokens, HttpContext context)
+        {   
+            var accessToken = tokens[ACCESS_TOKEN]?.ToString();
             var refreshToken = tokens[REFRESH_TOKEN]?.ToString();
             var idToken = tokens[ID_TOKEN]?.ToString();
 
             // An access token is always returned
-            var newTokens = new List<AuthenticationToken>
-            {
-                new AuthenticationToken { Name = ACCESS_TOKEN, Value = accessToken }
-            };
+            var newTokens = new List<AuthenticationToken>();
+            newTokens.Add(new AuthenticationToken{ Name = ACCESS_TOKEN, Value = accessToken });
 
             // A refresh token will be returned when rotating refresh tokens are used, which is the default in the Curity Identity Server
             if (string.IsNullOrWhiteSpace(refreshToken))
             {
-                refreshToken = await context.GetTokenAsync(REFRESH_TOKEN) ?? string.Empty;
+                refreshToken = await context.GetTokenAsync(REFRESH_TOKEN);
             }
-            newTokens.Add(new AuthenticationToken { Name = REFRESH_TOKEN, Value = refreshToken });
+            newTokens.Add(new AuthenticationToken{ Name = REFRESH_TOKEN, Value = refreshToken });
 
             // A new ID token is optional
             if (string.IsNullOrWhiteSpace(idToken))
             {
-                idToken = await context.GetTokenAsync(ID_TOKEN) ?? string.Empty;
+                idToken = await context.GetTokenAsync(ID_TOKEN);
             }
-            newTokens.Add(new AuthenticationToken { Name = ID_TOKEN, Value = idToken });
+            newTokens.Add(new AuthenticationToken{ Name = ID_TOKEN, Value = idToken });
 
             // Rewrite cookies
-            var properties = context.Features.Get<IAuthenticateResultFeature>()?.AuthenticateResult?.Properties;
-            if (properties != null)
-            {
-                properties.StoreTokens(newTokens);
-                await context.SignInAsync(context.User, properties);
-            }
+            var properties = context.Features.Get<IAuthenticateResultFeature>().AuthenticateResult.Properties;
+            properties.StoreTokens(newTokens);
+            await context.SignInAsync(context.User, properties);
         }
     }
-}

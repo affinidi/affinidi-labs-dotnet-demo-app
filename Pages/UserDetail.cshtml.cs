@@ -9,7 +9,7 @@ using Newtonsoft.Json;
 
 namespace Affinidi_Login_Demo_App
 {
-    public record UserData(string? given_name, string? family_name, string? email, string? did);
+    public record UserData(string given_name, string family_name, string email, string did);
     [Authorize]
     public class UserDetailModel(TokenClient tokenClient) : PageModel
     {
@@ -31,36 +31,27 @@ namespace Affinidi_Login_Demo_App
             {
                 try
                 {
-                    var trimmed = claim.TrimStart();
-                    if (trimmed.StartsWith("{"))
-                    {
-                        var dataDict = JsonConvert.DeserializeObject<Dictionary<string, string?>>(claim);
-                        userData = userData with
-                        {
-                            given_name = dataDict?.GetValueOrDefault("givenName", userData.given_name),
-                            family_name = dataDict?.GetValueOrDefault("familyName", userData.family_name),
-                            email = dataDict?.GetValueOrDefault("email", userData.email),
-                            did = dataDict?.GetValueOrDefault("did", userData.did)
-                        };
-                    }
-                    else
-                    {
-                        // Not a JSON object, skip or handle differently if needed
-                        Console.WriteLine($"[UserDetail] Skipped non-object claim: {claim}");
-                    }
+                    var dataDict = JsonConvert.DeserializeObject<Dictionary<string, string>>(claim);
+                userData = userData with
+                {
+                    given_name = dataDict?.GetValueOrDefault("givenName", userData.given_name),
+                    family_name = dataDict?.GetValueOrDefault("familyName", userData.family_name),
+                    email = dataDict?.GetValueOrDefault("email", userData.email),
+                    did = dataDict?.GetValueOrDefault("did", userData.did)
+                };
                 }
                 catch (Exception e)
                 {
+                    //continue to get next claims in case of parsing error due to data in other format 
+                    //than simple key value pair. This is just for this demo app, actual data need to be taken care in real app 
                     Console.WriteLine(e);
                 }
 
-
+                
             }
 
-
-            this.Username = !string.IsNullOrEmpty(userData.given_name)
-                ? userData.given_name + " " + userData.family_name
-                : (!string.IsNullOrEmpty(userData.email) ? userData.email.Split('@').ElementAtOrDefault(0) : string.Empty);
+           
+            this.Username = !String.IsNullOrEmpty(userData.given_name)? userData.given_name + " " + userData.family_name:userData.email.Split('@').ElementAtOrDefault(0);
             this.DID = userData.did;
             this.Email = userData.email;
             this.AccessToken = await this.tokenClient.GetAccessToken(this.HttpContext);

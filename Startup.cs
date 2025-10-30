@@ -65,7 +65,7 @@ public class Startup
             options.Authority = System.Environment.GetEnvironmentVariable("PROVIDER_ISSUER");
             options.ClientId = System.Environment.GetEnvironmentVariable("PROVIDER_CLIENT_ID");
             options.ClientSecret = System.Environment.GetEnvironmentVariable("PROVIDER_CLIENT_SECRET");
-            string? scopeString = System.Environment.GetEnvironmentVariable("SCOPE");
+            string scopeString = System.Environment.GetEnvironmentVariable("SCOPE");
             options.ResponseType = OpenIdConnectResponseType.Code;
             options.ResponseMode = OpenIdConnectResponseMode.Query;
             options.Scope.Clear();

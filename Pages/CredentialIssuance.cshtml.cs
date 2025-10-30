@@ -3,133 +3,97 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Affinidi_Login_Demo_App.Util;
 
-
 namespace Affinidi_Login_Demo_App.Pages
 {
+
     public class MetaData
     {
-        public string? expirationDate { get; set; }
+        public string expirationDate { get; set; }
     }
 
-    public class CredentialData
-    {
-        public string? credentialTypeId { get; set; }
-        public object? credentialData { get; set; }
-
-    }
-
-    [AutoValidateAntiforgeryToken]
+    [IgnoreAntiforgeryToken]
     public class CredentialIssuanceModel : PageModel
     {
-        private readonly string projectId;
-        private readonly string vaultUrl;
-
-        public CredentialIssuanceModel()
-        {
-            projectId = Environment.GetEnvironmentVariable("PROJECT_ID") ?? string.Empty;
-            vaultUrl = Environment.GetEnvironmentVariable("PUBLIC_VAULT_URL") ?? "https://vault.affinidi.com";
-        }
-
         public void OnGet()
         {
         }
 
         private async Task<IActionResult> IssueCredential(string credentialTypeId, object credentialData, bool isRevocable, bool isExpiry)
         {
-            // Log input parameters
-            Console.WriteLine($"[IssueCredential] credentialTypeId: {credentialTypeId}");
-            Console.WriteLine($"[IssueCredential] credentialData: {JsonConvert.SerializeObject(credentialData)}");
-            Console.WriteLine($"[IssueCredential] isRevocable: {isRevocable}, isExpiry: {isExpiry}");
-
-            // Build the payload dynamically to avoid nulls
-            var dataToIssue = new Dictionary<string, object>
+            var dataToIssue = new CredentialData
             {
-                { "credentialTypeId", credentialTypeId },
-                { "credentialData", credentialData }
+                credentialTypeId = credentialTypeId,
+                credentialData = credentialData
             };
 
+            // Conditionally add metadata for expiry. The property is only added if isExpiry is true.
             if (isExpiry)
             {
-                dataToIssue["metaData"] = new MetaData
+                dataToIssue.metaData = new MetaData
                 {
                     expirationDate = "2027-09-01T00:00:00.000Z"
                 };
-                Console.WriteLine("[IssueCredential] metaData added to payload.");
             }
 
+            // Conditionally add status list details for revocability. The property is only added if isRevocable is true.
             if (isRevocable)
             {
-                dataToIssue["statusListDetails"] = new List<object>
+                dynamic revocablePayload = new
                 {
-                    new { purpose = "REVOCABLE", standard = "RevocationList2020" }
+                    purpose = "REVOCABLE",
+                    standard = "RevocationList2020"
                 };
-                Console.WriteLine("[IssueCredential] statusListDetails added to payload.");
+                dataToIssue.statusListDetails = new List<dynamic> { revocablePayload };
             }
 
-            var dataList = new List<object> { dataToIssue };
-            var claimMode = "TX_CODE";
-
-            Console.WriteLine($"[IssueCredential] Final payload: {JsonConvert.SerializeObject(dataList)}");
-
-            var credentialsClient = new CredentialsClient(projectId, vaultUrl);
-
-            object? issuanceResponse = null;
-            try
+            var issuanceInput = new StartIssuanceInput
             {
-                issuanceResponse = await credentialsClient.StartIssuanceAsync(dataList, claimMode);
-                Console.WriteLine($"[IssueCredential] Issuance Response: {JsonConvert.SerializeObject(issuanceResponse)}");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[IssueCredential] Exception during issuance: {ex}");
-                TempData["IssuanceMessage"] = $"Error during credential issuance: {ex.Message}";
-                return RedirectToPage();
-            }
+                claimMode = ClaimModeEnum.TX_CODE,
+                data = new List<CredentialData> { dataToIssue }
+            };
 
-            var responseDict = issuanceResponse as Dictionary<string, object>;
-            var credentialOfferUri = responseDict != null && responseDict.ContainsKey("credentialOfferUri")
-                ? responseDict["credentialOfferUri"]?.ToString() ?? ""
-                : "";
+            var credentialsClient = new CredentialsClient();
+            //Console.WriteLine($"Issuance Input: {JsonConvert.SerializeObject(issuanceInput, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore })}");
+            var issuanceResponse = await credentialsClient.IssuanceStart(issuanceInput);
+            //Console.WriteLine($"Issuance Response: {JsonConvert.SerializeObject(issuanceResponse)}");
+
+            var credentialOfferUri = issuanceResponse?.CredentialOfferUri ?? "";
+            var vaultUrl = Environment.GetEnvironmentVariable("PUBLIC_VAULT_URL") ?? "https://vault.affinidi.com";
             var claimUrl = $"{vaultUrl}/claim?credential_offer_uri={Uri.EscapeDataString(credentialOfferUri)}";
+
+            //Console.WriteLine($"Claim URL: {claimUrl}");
 
             TempData["IssuanceMessage"] = $"{credentialTypeId} Credential issued. Check logs for details.";
             TempData["CredentialOfferUri"] = credentialOfferUri;
+            TempData["IssuanceId"] = issuanceResponse?.IssuanceId;
+            TempData["ExpiresIn"] = issuanceResponse?.ExpiresIn.ToString() ?? "0";
+            TempData["TxCode"] = issuanceResponse?.TxCode;
             TempData["ClaimUrl"] = claimUrl;
-
-            if (responseDict != null)
-            {
-                TempData["IssuanceId"] = responseDict.ContainsKey("issuanceId") ? responseDict["issuanceId"]?.ToString() : "";
-                TempData["ExpiresIn"] = responseDict.ContainsKey("expiresIn") ? responseDict["expiresIn"]?.ToString() : "0";
-                TempData["TxCode"] = responseDict.ContainsKey("txCode") ? responseDict["txCode"]?.ToString() : "";
-            }
-            else
-            {
-                Console.WriteLine("[IssueCredential] Response is not a dictionary or is null.");
-            }
 
             return RedirectToPage();
         }
 
         public async Task<IActionResult> OnPostIssuePersonalInfo([FromForm] bool revocablePersonalInfo, [FromForm] bool expiryPersonalInfo)
         {
+            // Use a dynamic object to build the credential data
             dynamic credentialData = new
             {
                 name = new
                 {
-                    givenName = "John",
-                    familyName = "Doe",
-                    nickname = "Johnny"
+                    givenName = "Grajesh",
+                    familyName = "Chandra",
+                    nickname = "Grajesh Testing"
                 },
-                birthdate = "1990-01-01",
-                birthCountry = "USA",
-                citizenship = "American",
-                phoneNumber = "1234567890",
+                birthdate = "01-01-1990",
+                birthCountry = "India",
+                citizenship = "Indian",
+                phoneNumber = "7666009585",
                 nationalIdentification = new
                 {
-                    idNumber1 = "123456789",
-                    idType1 = "SSN"
+                    idNumber1 = "pan",
+                    idType1 = "askjd13212432d"
                 },
-                email = "john.doe@example.com",
+                email = "grajesh.c@affinidi.com",
                 gender = "male",
                 maritalStatus = "married",
                 verificationStatus = "Completed",
@@ -141,9 +105,7 @@ namespace Affinidi_Login_Demo_App.Pages
                 verificationRemarks = "Done"
             };
 
-            return await IssueCredential(
-                Environment.GetEnvironmentVariable("PUBLIC_CREDENTIAL_TYPE_ID") ?? "AvvanzPersonalInformationVerification",
-                credentialData, revocablePersonalInfo, expiryPersonalInfo);
+            return await IssueCredential(Environment.GetEnvironmentVariable("PUBLIC_CREDENTIAL_TYPE_ID") ?? "AvvanzPersonalInformationVerification", credentialData, revocablePersonalInfo, expiryPersonalInfo);
         }
 
         public async Task<IActionResult> OnPostIssueEducation([FromForm] bool revocableEducation, [FromForm] bool expiryEducation)
@@ -152,9 +114,9 @@ namespace Affinidi_Login_Demo_App.Pages
             {
                 candidateDetails = new
                 {
-                    name = "Jane Doe",
-                    phoneNumber = "0987654321",
-                    email = "jane.doe@example.com",
+                    name = "Grajesh Chandra",
+                    phoneNumber = "7666009585",
+                    email = "grajesh.c@affinidi.com",
                     gender = "male"
                 },
                 institutionDetails = new
@@ -177,9 +139,9 @@ namespace Affinidi_Login_Demo_App.Pages
                 {
                     qualification = "Graduation",
                     course = "MBA",
-                    graduationDate = "2013-08-12",
-                    dateAttendedFrom = "2011-08-12",
-                    dateAttendedTo = "2013-07-12",
+                    graduationDate = "12-08-2013",
+                    dateAttendedFrom = "12-08-2011",
+                    dateAttendedTo = "12-07-2013",
                     educationRegistrationID = "admins1223454356"
                 },
                 verificationStatus = "Verified",
@@ -191,9 +153,7 @@ namespace Affinidi_Login_Demo_App.Pages
                 verificationRemarks = "completed"
             };
 
-            return await IssueCredential(
-                Environment.GetEnvironmentVariable("EDUCATION_CREDENTIAL_TYPE_ID") ?? "education_credential_type_id",
-                credentialData, revocableEducation, expiryEducation);
+            return await IssueCredential(Environment.GetEnvironmentVariable("EDUCATION_CREDENTIAL_TYPE_ID") ?? "education_credential_type_id", credentialData, revocableEducation, expiryEducation);
         }
 
         public async Task<IActionResult> OnPostIssueEmployment([FromForm] bool revocableEmployment, [FromForm] bool expiryEmployment)
@@ -202,9 +162,9 @@ namespace Affinidi_Login_Demo_App.Pages
             {
                 candidateDetails = new
                 {
-                    name = "Peter Jones",
-                    phoneNumber = "1122334455",
-                    email = "peter.jones@example.com",
+                    name = "Grajesh Chandra",
+                    phoneNumber = "7666009585",
+                    email = "grajesh.c@affinidi.com",
                     gender = "male"
                 },
                 employerDetails = new
@@ -236,8 +196,8 @@ namespace Affinidi_Login_Demo_App.Pages
                     currency = "INR",
                     tenure = new
                     {
-                        fromDate = "2022-05-01",
-                        toDate = "2050-06-01"
+                        fromDate = "05-2022",
+                        toDate = "06-2050"
                     },
                     reasonForLeaving = "Resignation",
                     eligibleForRehire = "Yes"
@@ -251,9 +211,7 @@ namespace Affinidi_Login_Demo_App.Pages
                 verificationRemarks = "Done"
             };
 
-            return await IssueCredential(
-                Environment.GetEnvironmentVariable("EMPLOYMENT_CREDENTIAL_TYPE_ID") ?? "employment_credential_type_id",
-                credentialData, revocableEmployment, expiryEmployment);
+            return await IssueCredential(Environment.GetEnvironmentVariable("EMPLOYMENT_CREDENTIAL_TYPE_ID") ?? "employment_credential_type_id", credentialData, revocableEmployment, expiryEmployment);
         }
 
         public async Task<IActionResult> OnPostIssueResidence([FromForm] bool revocableResidence, [FromForm] bool expiryResidence)
@@ -280,8 +238,8 @@ namespace Affinidi_Login_Demo_App.Pages
                 },
                 stayDetails = new
                 {
-                    fromDate = "2000-01-01",
-                    toDate = "2020-01-01"
+                    fromDate = "01-01-2000",
+                    toDate = "01-01-2020"
                 },
                 verificationStatus = "Completed",
                 verificationEvidence = new
@@ -292,37 +250,37 @@ namespace Affinidi_Login_Demo_App.Pages
                 verificationRemarks = "done"
             };
 
-            return await IssueCredential(
-                Environment.GetEnvironmentVariable("ADDRESS_CREDENTIAL_TYPE_ID") ?? "address_credential_type_id",
-                credentialData, revocableResidence, expiryResidence);
+            return await IssueCredential(Environment.GetEnvironmentVariable("ADDRESS_CREDENTIAL_TYPE_ID") ?? "address_credential_type_id", credentialData, revocableResidence, expiryResidence);
         }
 
         public async Task<IActionResult> OnPostIssueBatch([FromForm] bool revocableBatch, [FromForm] bool expiryBatch)
         {
-            var data = new List<object>();
+            var data = new List<CredentialData>();
+
+            // Create and conditionally add each credential to the list
 
             // Personal Information Credential
-            var personalInfoCredential = new
+            var personalInfoCredential = new CredentialData
             {
                 credentialTypeId = Environment.GetEnvironmentVariable("PERSONAL_INFORMATION_CREDENTIAL_TYPE_ID") ?? "personal_information_credential_type_id",
                 credentialData = new
                 {
                     name = new
                     {
-                        givenName = "Batch",
-                        familyName = "User",
-                        nickname = "Batchy"
+                        givenName = "Grajesh",
+                        familyName = "Chandra",
+                        nickname = "Grajesh Testing"
                     },
-                    birthdate = "1995-05-15",
-                    birthCountry = "Canada",
-                    citizenship = "Canadian",
-                    phoneNumber = "9876543210",
+                    birthdate = "01-01-1990",
+                    birthCountry = "India",
+                    citizenship = "Indian",
+                    phoneNumber = "7666009585",
                     nationalIdentification = new
                     {
-                        idNumber1 = "987654321",
-                        idType1 = "Passport"
+                        idNumber1 = "pan",
+                        idType1 = "askjd13212432d"
                     },
-                    email = "batch.user@example.com",
+                    email = "grajesh.c@affinidi.com",
                     gender = "male",
                     maritalStatus = "married",
                     verificationStatus = "Completed",
@@ -332,14 +290,20 @@ namespace Affinidi_Login_Demo_App.Pages
                         evidenceURL1 = "http://localhost"
                     },
                     verificationRemarks = "Done"
-                },
-                metaData = expiryBatch ? new MetaData { expirationDate = "2027-09-01T00:00:00.000Z" } : null,
-                statusListDetails = revocableBatch ? new List<object> { new { purpose = "REVOCABLE", standard = "RevocationList2020" } } : null
+                }
             };
+            if (expiryBatch)
+            {
+                personalInfoCredential.metaData = new MetaData { expirationDate = "2027-09-01T00:00:00.000Z" };
+            }
+            if (revocableBatch)
+            {
+                personalInfoCredential.statusListDetails = new List<dynamic> { new { purpose = "REVOCABLE", standard = "RevocationList2020" } };
+            }
             data.Add(personalInfoCredential);
 
             // Address Credential
-            var addressCredential = new
+            var addressCredential = new CredentialData
             {
                 credentialTypeId = Environment.GetEnvironmentVariable("ADDRESS_CREDENTIAL_TYPE_ID") ?? "address_credential_type_id",
                 credentialData = new
@@ -364,8 +328,8 @@ namespace Affinidi_Login_Demo_App.Pages
                     },
                     stayDetails = new
                     {
-                    fromDate = "2010-01-01",
-                    toDate = "2020-01-01"
+                        fromDate = "01-01-2000",
+                        toDate = "01-01-2020"
                     },
                     verificationStatus = "Completed",
                     verificationEvidence = new
@@ -374,23 +338,29 @@ namespace Affinidi_Login_Demo_App.Pages
                         evidenceURL1 = "http://localhost"
                     },
                     verificationRemarks = "done"
-                },
-                metaData = expiryBatch ? new MetaData { expirationDate = "2027-09-01T00:00:00.000Z" } : null,
-                statusListDetails = revocableBatch ? new List<object> { new { purpose = "REVOCABLE", standard = "RevocationList2020" } } : null
+                }
             };
+            if (expiryBatch)
+            {
+                addressCredential.metaData = new MetaData { expirationDate = "2027-09-01T00:00:00.000Z" };
+            }
+            if (revocableBatch)
+            {
+                addressCredential.statusListDetails = new List<dynamic> { new { purpose = "REVOCABLE", standard = "RevocationList2020" } };
+            }
             data.Add(addressCredential);
 
             // Education Credential
-            var educationCredential = new
+            var educationCredential = new CredentialData
             {
                 credentialTypeId = Environment.GetEnvironmentVariable("EDUCATION_CREDENTIAL_TYPE_ID") ?? "education_credential_type_id",
                 credentialData = new
                 {
                     candidateDetails = new
                     {
-                        name = "Batch Student",
-                        phoneNumber = "5551112222",
-                        email = "batch.student@example.com",
+                        name = "Grajesh Chandra",
+                        phoneNumber = "7666009585",
+                        email = "grajesh.c@affinidi.com",
                         gender = "male"
                     },
                     institutionDetails = new
@@ -425,23 +395,29 @@ namespace Affinidi_Login_Demo_App.Pages
                         evidenceURL1 = "http://localhost"
                     },
                     verificationRemarks = "completed"
-                },
-                metaData = expiryBatch ? new MetaData { expirationDate = "2027-09-01T00:00:00.000Z" } : null,
-                statusListDetails = revocableBatch ? new List<object> { new { purpose = "REVOCABLE", standard = "RevocationList2020" } } : null
+                }
             };
+            if (expiryBatch)
+            {
+                educationCredential.metaData = new MetaData { expirationDate = "2027-09-01T00:00:00.000Z" };
+            }
+            if (revocableBatch)
+            {
+                educationCredential.statusListDetails = new List<dynamic> { new { purpose = "REVOCABLE", standard = "RevocationList2020" } };
+            }
             data.Add(educationCredential);
 
             // Employment Credential
-            var employmentCredential = new
+            var employmentCredential = new CredentialData
             {
                 credentialTypeId = Environment.GetEnvironmentVariable("EMPLOYMENT_CREDENTIAL_TYPE_ID") ?? "employment_credential_type_id",
                 credentialData = new
                 {
                     candidateDetails = new
                     {
-                        name = "Batch Employee",
-                        phoneNumber = "4443332222",
-                        email = "batch.employee@example.com",
+                        name = "Grajesh Chandra",
+                        phoneNumber = "7666009585",
+                        email = "grajesh.c@affinidi.com",
                         gender = "male"
                     },
                     employerDetails = new
@@ -473,8 +449,8 @@ namespace Affinidi_Login_Demo_App.Pages
                         currency = "INR",
                         tenure = new
                         {
-                        fromDate = "2020-01-01",
-                        toDate = "2023-12-31"
+                            fromDate = "05-2022",
+                            toDate = "06-2050"
                         },
                         reasonForLeaving = "Resignation",
                         eligibleForRehire = "Yes"
@@ -486,84 +462,55 @@ namespace Affinidi_Login_Demo_App.Pages
                         evidenceURL1 = "http://localhost"
                     },
                     verificationRemarks = "Done"
-                },
-                metaData = expiryBatch ? new MetaData { expirationDate = "2027-09-01T00:00:00.000Z" } : null,
-                statusListDetails = revocableBatch ? new List<object> { new { purpose = "REVOCABLE", standard = "RevocationList2020" } } : null
+                }
             };
+            if (expiryBatch)
+            {
+                employmentCredential.metaData = new MetaData { expirationDate = "2027-09-01T00:00:00.000Z" };
+            }
+            if (revocableBatch)
+            {
+                employmentCredential.statusListDetails = new List<dynamic> { new { purpose = "REVOCABLE", standard = "RevocationList2020" } };
+            }
             data.Add(employmentCredential);
 
-            var claimMode = "TX_CODE";
+            var issuanceInput = new StartIssuanceInput
+            {
+                claimMode = ClaimModeEnum.TX_CODE,
+                data = data
+            };
 
-            var credentialsClient = new CredentialsClient(projectId, vaultUrl);
-            var issuanceResponse = await credentialsClient.StartIssuanceAsync(data, claimMode);
+            var credentialsClient = new CredentialsClient();
+            //Console.WriteLine($"Batch Issuance Input: {JsonConvert.SerializeObject(issuanceInput, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore })}");
+            var issuanceResponse = await credentialsClient.IssuanceStart(issuanceInput);
+            //Console.WriteLine($"Batch Issuance Response: {JsonConvert.SerializeObject(issuanceResponse)}");
 
-            var responseDict = issuanceResponse as Dictionary<string, object>;
-            var credentialOfferUri = responseDict != null && responseDict.ContainsKey("credentialOfferUri")
-                ? responseDict["credentialOfferUri"]?.ToString() ?? ""
-                : "";
+            var credentialOfferUri = issuanceResponse?.CredentialOfferUri ?? "";
+            var vaultUrl = Environment.GetEnvironmentVariable("PUBLIC_VAULT_URL") ?? "https://vault.affinidi.com";
             var claimUrl = $"{vaultUrl}/claim?credential_offer_uri={Uri.EscapeDataString(credentialOfferUri)}";
+
+            //Console.WriteLine($"Claim URL: {claimUrl}");
 
             TempData["IssuanceMessage"] = "Batch Credential issuance process completed. Check logs for details.";
             TempData["ClaimUrl"] = claimUrl;
             TempData["CredentialOfferUri"] = credentialOfferUri;
-
-            if (responseDict != null)
-            {
-                TempData["IssuanceId"] = responseDict.ContainsKey("issuanceId") ? responseDict["issuanceId"]?.ToString() : "";
-                TempData["ExpiresIn"] = responseDict.ContainsKey("expiresIn") ? responseDict["expiresIn"]?.ToString() : "0";
-                TempData["TxCode"] = responseDict.ContainsKey("txCode") ? responseDict["txCode"]?.ToString() : "";
-            }
-
+            TempData["IssuanceId"] = issuanceResponse?.IssuanceId;
+            TempData["ExpiresIn"] = issuanceResponse?.ExpiresIn.ToString() ?? "0";
+            TempData["TxCode"] = issuanceResponse?.TxCode;
             return RedirectToPage();
         }
 
-        public Task<IActionResult> OnPostIssueCustom([FromForm] bool revocableCustom, [FromForm] bool expiryCustom)
+        public async Task<IActionResult> OnPostIssueCustom([FromForm] bool revocableCustom, [FromForm] bool expiryCustom)
         {
+            // Similar approach can be used here for dynamic data
             TempData["IssuanceMessage"] = "Custom Credential issuance process initiated. Check your backend logs for details.";
-            return Task.FromResult<IActionResult>(RedirectToPage());
+            return RedirectToPage();
         }
-
-        [BindProperty]
-        public string? StatusIssuanceId { get; set; }
-
-        public string? StatusMessage { get; set; }
 
         public async Task<IActionResult> OnPostCheckCredentialStatus()
         {
-            var issuanceId = !string.IsNullOrWhiteSpace(StatusIssuanceId)
-                ? StatusIssuanceId
-                : HttpContext.Session.GetString("IssuanceId");
 
-            var configurationId = Environment.GetEnvironmentVariable("CONFIGURATION_ID") ?? string.Empty;
-            var projectId = Environment.GetEnvironmentVariable("PROJECT_ID") ?? string.Empty;
-            Console.WriteLine($"[CheckCredentialStatus] Retrieved IssuanceId: {issuanceId}");
-            Console.WriteLine($"[CheckCredentialStatus] Using ConfigurationId: {configurationId}");
-            Console.WriteLine($"[CheckCredentialStatus] Using ProjectId: {projectId}");
-
-            if (string.IsNullOrEmpty(issuanceId) || string.IsNullOrEmpty(configurationId))
-            {
-                Console.WriteLine("[CheckCredentialStatus] Missing IssuanceId or ConfigurationId.");
-                StatusMessage = "Cannot check status: IssuanceId or ConfigurationId is missing.";
-                return Page();
-            }
-
-            try
-            {
-                var credentialsClient = new CredentialsClient(projectId, vaultUrl);
-                Console.WriteLine("[CheckCredentialStatus] Calling CheckCredentialStatusAsync...");
-                var statusResponse = await credentialsClient.CheckCredentialStatusAsync(projectId, configurationId, issuanceId);
-
-                Console.WriteLine($"[CheckCredentialStatus] Response: {JsonConvert.SerializeObject(statusResponse)}");
-
-                StatusMessage = $"Credential status: {JsonConvert.SerializeObject(statusResponse)}";
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[CheckCredentialStatus] Exception: {ex}");
-                StatusMessage = $"Error checking credential status: {ex.Message}";
-            }
-
-            return Page(); // <--- Stay on the same page and show the result
+            return RedirectToPage();
         }
     }
 }

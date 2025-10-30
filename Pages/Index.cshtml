@@ -36,32 +36,25 @@
         margin-bottom: 1.5rem;
     }
 
-    .feature-nav {
-        background: transparent !important;
+    .navbar1 {
+        background: #f4f6fb !important;
         border-radius: 12px;
-        padding: 1rem 0;
+        box-shadow: 0 2px 8px rgba(44, 62, 80, 0.05);
     }
 
-    .feature-link {
+    .nav-link1 {
         font-size: 1.1rem;
-        font-weight: 500;
-        color: #34495e !important;
-        background-color: #f8f9fa;
-        border: 1px solid #dee2e6;
+        color: #2c3e50 !important;
+        background: #eaf0fa;
         border-radius: 8px;
-        transition: all 0.3s ease;
+        margin-bottom: 6px;
+        transition: background 0.2s, color 0.2s;
         padding: 0.75rem 1rem;
         text-decoration: none;
-        display: flex;
-        align-items: center;
-        justify-content: center;
     }
-    .feature-link:hover {
-        background-color: #0d6efd;
-        color: #ffffff !important;
-        border-color: #0d6efd;
-        transform: translateY(-3px);
-        box-shadow: 0 4px 12px rgba(0, 123, 255, 0.2);
+    .nav-link1:hover {
+        background: #d0e2ff;
+        color: #0077b6 !important;
         text-decoration: none;
     }
 </style>
@@ -72,42 +65,42 @@
             <div class="card shadow-lg border-0">
                 <div class="card-body text-center">
                     <img src="~/images/logo.jpg" alt="Affinidi Logo" class="affinidi-logo" />
-                    <h2 class="display-5 mb-4">Dotnet 8.0 Demo Implementation</h2>
+                    <h2 class="display-5 mb-4">Dotnet 8.0 Reference Implementation</h2>
                     <div class="mb-4">
                         <p class="lead mb-2"><b>Click on Login to Experience Affinidi Login</b></p>
                     </div>
                     <p class="fw-bold mb-4">
                         Learn more about <a href="https://docs.affinidi.com/docs" target="_blank" style="color:#0077b6;">Affinidi Products and Services <i class="bi bi-box-arrow-up-right"></i></a>.
                     </p>
-                    <nav class="feature-nav navbar-expand-lg rounded mb-4">
+                    <nav class="navbar1 navbar-expand-lg rounded mb-4">
                         <div class="container-fluid justify-content-center">
                             <ul class="navbar-nav flex-column align-items-center w-100">
                                 <li class="nav-item my-2 w-75">
-                                    <a class="feature-link w-100" href="/CredentialIssuance">
+                                    <a class="nav-link1 fw-bold w-100 text-center d-flex align-items-center justify-content-center" href="/CredentialIssuance">
                                         <i class="bi bi-award me-2"></i>
                                         <span>Affinidi Credential Issuance Service</span>
                                     </a>
                                 </li>
                                 <li class="nav-item my-2 w-75">
-                                    <a class="feature-link w-100" href="/Iota">
+                                    <a class="nav-link1 fw-bold w-100 text-center d-flex align-items-center justify-content-center" href="/Iota">
                                         <i class="bi bi-diagram-3 me-2"></i>
                                         <span>Affinidi Iota Framework</span>
                                     </a>
                                 </li>
                                 <li class="nav-item my-2 w-75">
-                                    <a class="feature-link w-100" href="/CredentialVerification">
+                                    <a class="nav-link1 fw-bold w-100 text-center d-flex align-items-center justify-content-center" href="/CredentialVerification">
                                         <i class="bi bi-shield-check me-2"></i>
                                         <span>Affinidi Credential Verification</span>
                                     </a>
                                 </li>
                                 <li class="nav-item my-2 w-75">
-                                    <a class="feature-link w-100" href="/IDV">
+                                    <a class="nav-link1 fw-bold w-100 text-center d-flex align-items-center justify-content-center" href="/IDV">
                                         <i class="bi bi-person-badge me-2"></i>
                                         <span>Affinidi Identity Verification</span>
                                     </a>
                                 </li>
                                 <li class="nav-item my-2 w-75">
-                                    <a class="feature-link w-100" href="/RevokeCredentials">
+                                    <a class="nav-link1 fw-bold w-100 text-center d-flex align-items-center justify-content-center" href="/RevokeCredentials">
                                         <i class="bi bi-x-circle me-2"></i>
                                         <span>Affinidi Revoke Credentials</span>
                                     </a>
