@@ -33,9 +33,11 @@ This proreference application demonstrates how to use **Affinidi Services** to *
 Additonaly, It also show capabilites for **Affinidi Iota Framwork (Sharing), Affinidi Identity Verification (IDV), Affinidi Verification, Affinidi Revocation**.
 
 It is built with **Dot Net 8.0** and **Razor Pages** and serves as a **reference implementation** for developers who want to:
-- Learn the **Affinidi APIs & TDK(Trust Development Kit)**
+- Learn the **Affinidi APIs** and how to integrate them into .NET applications
 - Bootstrap their own integrations
 - Explore credential **issuance, verification, Iota, IDV and revocation** flows
+
+For a complete reference of all Affinidi APIs used in this application, see [Affinidi APIs Reference](./Affinidi_api.md).
 
 
 ## ✨ Features to Explore
@@ -103,88 +105,20 @@ dotnet --version
 
 ## 📦 Installing Dependencies
 
-
-### Option 1: Install from NuGet (Recommended for Future)
-
-> **Note:** Mandatory Package to install
+Install the required NuGet packages:
 
 ```sh
 dotnet add package DotNetEnv --version 3.1.1
 dotnet add package Microsoft.AspNetCore.Authentication.OpenIdConnect --version 8.0.5
 ```
 
-> **Important:**
-> The Affinidi TDK packages are currently distributed as local `.nupkg` files. In the future, these packages will be published to NuGet, and you will be able to install them directly from the public NuGet repository. Follow the appropriate instructions below based on your scenario.
-
-Once the Affinidi packages are published to NuGet, install all dependencies with:
-
-```sh
-dotnet add package AffinidiTdk.AuthProvider --version 1.0.0
-dotnet add package AffinidiTdk.Common --version 1.0.0
-dotnet add package AffinidiTdk.CredentialIssuanceClient --version 1.0.0
-dotnet add package AffinidiTdk.CredentialVerificationClient --version 1.0.0
-dotnet add package AffinidiTdk.IotaClient --version 1.0.0
-```
-
-> **Note:** Use the latest version numbers as published on NuGet.
-
-### Option 2: Install from Local `.nupkg` Files (Current Method)
-
-If you have received `.nupkg` files for Affinidi TDK libraries, follow these steps:
-
-#### 1. Place the NuGet Packages
-
-Copy all provided `.nupkg` files into a folder named `library` at the root of your project:
-
-```
-/library/
-  ├── AffinidiTdk.AuthProvider.1.0.6.nupkg
-  ├── AffinidiTdk.Common.1.0.6.nupkg
-  ├── AffinidiTdk.CredentialIssuanceClient.0.0.6.nupkg
-  ├── AffinidiTdk.CredentialVerificationClient.0.0.6.nupkg
-  ├── AffinidiTdk.IotaClient.0.0.6.nupkg
-```
-
-#### 2. (Optional) Add Local NuGet Source
-
-```sh
-dotnet nuget add source $(pwd)/library --name LocalLibrary
-```
-
-> If the source already exists, you can skip this step or remove it with:
-> ```sh
-> dotnet nuget remove source LocalLibrary
-> ```
-
-List all sources:
-```sh
-dotnet nuget list source
-```
-
-#### 3. Add/Update Required Dependencies
-
-```sh
-dotnet add package DotNetEnv --version 3.1.1
-dotnet add package Microsoft.AspNetCore.Authentication.OpenIdConnect --version 8.0.5
-```
-
-#### 4. Install Local Affinidi Packages
-
-Run these commands from your project root:
-
-```sh
-dotnet add package AffinidiTdk.AuthProvider --version 1.0.6 --source $(pwd)/library
-dotnet add package AffinidiTdk.Common --version 1.0.6 --source $(pwd)/library
-dotnet add package AffinidiTdk.CredentialIssuanceClient --version 0.0.6 --source $(pwd)/library
-dotnet add package AffinidiTdk.CredentialVerificationClient --version 0.0.6 --source $(pwd)/library
-dotnet add package AffinidiTdk.IotaClient --version 0.0.6 --source $(pwd)/library
-```
-
-#### 5. Restore Packages
+Then restore all packages:
 
 ```sh
 dotnet restore
 ```
+
+> **Note:** This application uses Affinidi REST APIs directly. See [Affinidi APIs Reference](./Affinidi_api.md) for details on all the APIs used.
 
 ## ⚙️ Environment Setup
 
@@ -227,6 +161,7 @@ Visit [http://localhost:5068/](http://localhost:5068/) to explore the reference 
 
 ## Read More
 
+- [Affinidi APIs Reference](./Affinidi_api.md) - Complete reference for all Affinidi REST APIs used in this application
 - [Affinidi Documentation](https://docs.affinidi.com/docs/)
 
 ## Telemetry

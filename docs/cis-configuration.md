@@ -58,7 +58,7 @@ When issuing a Verifiable Credential, three main flows happen within the whole p
 Personal Access Token (PAT) is like a machine user that acts on your behalf to the Affinidi services. You can use the PAT to authenticate to the Affinidi services and automate specific tasks within your application. A Personal Access Token (PAT) lives outside of Projects, meaning PAT can access multiple projects once granted by the user.
 
 - More details: [Personal Access Token](https://docs.affinidi.com/dev-tools/affinidi-cli/manage-token/#how-does-pat-authentication-works)
-- PAT is needed for `Affinidi TDK Auth provider`.
+- PAT is needed for authenticating to Affinidi APIs. For details on authentication flow and API usage, see [Affinidi APIs Reference](../Affinidi_api.md).
 
 You can refer the [Affinidi Documentation](https://docs.affinidi.com/dev-tools/affinidi-cli/manage-token/#affinidi-token-create-token) for creating pesronal access token from CLI.
 
@@ -119,7 +119,7 @@ You can refer the [Affinidi Documentation](https://docs.affinidi.com/dev-tools/a
       }
     }
 
-    Use the projectId, tokenId, privateKey, and passphrase (if provided) to use this token with Affinidi TDK
+    Use the projectId, tokenId, privateKey, and passphrase (if provided) to authenticate with Affinidi APIs
     {
       "tokenId": "*******",
       "projectId": "*******",
