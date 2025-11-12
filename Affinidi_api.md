@@ -11,7 +11,7 @@ This document lists all Affinidi APIs used in this .NET reference application.
 - [OAuth2/OIDC](#5-oauth2oidc-token-endpoint)
 - [Summary](#summary)
 
----
+
 
 ## Authentication Flow
 
@@ -25,7 +25,7 @@ This document lists all Affinidi APIs used in this .NET reference application.
 4. Use project-scoped token for all other Affinidi APIs
 ```
 
----
+
 
 ## 1. IAM (Identity & Access Management) APIs
 
@@ -55,7 +55,7 @@ This document lists all Affinidi APIs used in this .NET reference application.
 
 **Implementation**: `util/ProjectScopedToken.cs` - `FetchProjectScopedTokenAsync()`
 
----
+
 
 ## 2. CIS (Credential Issuance Service) APIs
 
@@ -96,15 +96,35 @@ This document lists all Affinidi APIs used in this .NET reference application.
 
 **Implementation**: `util/CredentialsClient.cs` - `IssuanceStart()`
 
----
 
-### b) Get Issuance Status
+### b) Check Issuance State
+
+**Endpoint**: `{API_GATEWAY_URL}/cis/v1/{projectId}/issuance/state/{issuanceId}`
+
+**Method**: `GET`
+
+**Purpose**: Check the current state of an issuance process (INIT, PENDING, COMPLETED, etc.)
+
+**Authentication**: Bearer token (project-scoped token)
+
+**Response**:
+```json
+{
+  "issuanceId": "string",
+  "status": "INIT" | "PENDING" | "COMPLETED" | "FAILED"
+}
+```
+
+**Usage**: Use this API to track the issuance workflow state before credentials are claimed
+
+
+### c) Get Issuance Status (Retrieve Issued Credentials)
 
 **Endpoint**: `{API_GATEWAY_URL}/cis/v1/{projectId}/configurations/{configurationId}/issuances/{issuanceId}/credentials`
 
 **Method**: `GET`
 
-**Purpose**: Check the status of an issuance and retrieve issued credentials
+**Purpose**: Retrieve issued credentials after they have been claimed by the holder
 
 **Authentication**: Bearer token (project-scoped token)
 
@@ -118,9 +138,30 @@ This document lists all Affinidi APIs used in this .NET reference application.
 
 **Implementation**: `util/CredentialsClient.cs` - `IssuanceStatus()`
 
----
+**Webhook Integration for VC Copy Feature**:
 
-### c) List Issuance Records
+This API is typically called in response to a webhook notification. When a candidate accepts credentials in the Affinidi Vault, a webhook is triggered with:
+
+```json
+{
+  "issuanceId": "string",
+  "configurationId": "string"
+}
+```
+
+Upon receiving this webhook:
+1. Extract the `issuanceId` and `configurationId` from the webhook payload
+2. Call this API with your `projectId`, `configurationId`, and `issuanceId`
+3. Retrieve the issued credential(s) from the response
+4. Store or process the credentials as needed (VC copy)
+
+**Required Parameters**:
+- `projectId` - Your Affinidi project ID (from environment)
+- `configurationId` - Configuration ID (from webhook payload)
+- `issuanceId` - Issuance ID (from webhook payload)
+
+
+### d) List Issuance Records
 
 **Endpoint**: `{API_GATEWAY_URL}/cis/v1/{projectId}/configurations/{configurationId}/issuance/issuance-data-records`
 
@@ -139,9 +180,9 @@ This document lists all Affinidi APIs used in this .NET reference application.
 
 **Implementation**: `util/RevokeClient.cs` - `ListIssuanceRecordsAsync()`
 
----
 
-### d) Revoke Credential (Change Status)
+
+### e) Revoke Credential (Change Status)
 
 **Endpoint**: `{API_GATEWAY_URL}/cis/v1/{projectId}/configurations/{configurationId}/issuance/change-status`
 
@@ -187,7 +228,7 @@ This document lists all Affinidi APIs used in this .NET reference application.
 
 **Implementation**: `util/RevokeClient.cs` - `RevokeCredentialAsync()`
 
----
+
 
 ## 3. AIS (Affinidi Iota Service / Data Sharing) APIs
 
@@ -225,7 +266,7 @@ This document lists all Affinidi APIs used in this .NET reference application.
 
 **Implementation**: `util/IotaClient.cs` - `Start()`
 
----
+
 
 ### b) Fetch Iota Response
 
@@ -258,7 +299,7 @@ This document lists all Affinidi APIs used in this .NET reference application.
 
 **Implementation**: `util/IotaClient.cs` - `Complete()`
 
----
+
 
 ## 4. VER (Verifier Service) APIs
 
@@ -289,7 +330,7 @@ This document lists all Affinidi APIs used in this .NET reference application.
 
 **Implementation**: `util/VerifierClient.cs` - `VerifyCredentialsAsync()`
 
----
+
 
 ### b) Verify Presentation
 
@@ -318,7 +359,7 @@ This document lists all Affinidi APIs used in this .NET reference application.
 
 **Implementation**: `util/VerifierClient.cs` - `VerifyPresentationAsync()`
 
----
+
 
 ## 5. OAuth2/OIDC Token Endpoint
 
@@ -352,18 +393,18 @@ client_id={tokenId}
 
 **Implementation**: `util/ProjectScopedToken.cs` - `GetUserAccessTokenAsync()`
 
----
+
 
 ## Summary
 
 | Service | Number of APIs | Purpose |
 |---------|----------------|---------|
 | **IAM** | 1 | Token management |
-| **CIS** | 4 | Credential issuance & revocation |
+| **CIS** | 5 | Credential issuance & revocation |
 | **AIS (Iota)** | 2 | Data sharing requests |
 | **VER** | 2 | Credential verification |
 | **OAuth2** | 1 | Initial authentication |
-| **Total** | **10 APIs** | Complete credential lifecycle |
+| **Total** | **11 APIs** | Complete credential lifecycle |
 
 ---
 

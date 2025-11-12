@@ -14,12 +14,18 @@ namespace Affinidi_Login_Demo_App.Pages
     [IgnoreAntiforgeryToken]
     public class CredentialIssuanceModel : PageModel
     {
+        [BindProperty]
+        public string? IssuanceId { get; set; }
+
         public void OnGet()
         {
+            // Console.WriteLine("[CredentialIssuance] Page loaded");
         }
 
         private async Task<IActionResult> IssueCredential(string credentialTypeId, object credentialData, bool isRevocable, bool isExpiry)
         {
+            // Console.WriteLine($"[CredentialIssuance] IssueCredential called for type: {credentialTypeId}, Revocable: {isRevocable}, Expiry: {isExpiry}");
+
             var dataToIssue = new CredentialData
             {
                 credentialTypeId = credentialTypeId,
@@ -29,6 +35,7 @@ namespace Affinidi_Login_Demo_App.Pages
             // Conditionally add metadata for expiry. The property is only added if isExpiry is true.
             if (isExpiry)
             {
+                // Console.WriteLine($"[CredentialIssuance] Adding expiry metadata");
                 dataToIssue.metaData = new MetaData
                 {
                     expirationDate = "2027-09-01T00:00:00.000Z"
@@ -38,6 +45,7 @@ namespace Affinidi_Login_Demo_App.Pages
             // Conditionally add status list details for revocability. The property is only added if isRevocable is true.
             if (isRevocable)
             {
+                // Console.WriteLine($"[CredentialIssuance] Adding revocable status list details");
                 dynamic revocablePayload = new
                 {
                     purpose = "REVOCABLE",
@@ -53,15 +61,21 @@ namespace Affinidi_Login_Demo_App.Pages
             };
 
             var credentialsClient = new CredentialsClient();
-            //Console.WriteLine($"Issuance Input: {JsonConvert.SerializeObject(issuanceInput, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore })}");
+            // Console.WriteLine($"[CredentialIssuance] Calling IssuanceStart API");
+            // Console.WriteLine($"[CredentialIssuance] Issuance Input: {JsonConvert.SerializeObject(issuanceInput, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore })}");
+
             var issuanceResponse = await credentialsClient.IssuanceStart(issuanceInput);
-            //Console.WriteLine($"Issuance Response: {JsonConvert.SerializeObject(issuanceResponse)}");
+            // Console.WriteLine($"[CredentialIssuance] Issuance Response: {JsonConvert.SerializeObject(issuanceResponse)}");
 
             var credentialOfferUri = issuanceResponse?.CredentialOfferUri ?? "";
             var vaultUrl = Environment.GetEnvironmentVariable("PUBLIC_VAULT_URL") ?? "https://vault.affinidi.com";
             var claimUrl = $"{vaultUrl}/claim?credential_offer_uri={Uri.EscapeDataString(credentialOfferUri)}";
 
-            //Console.WriteLine($"Claim URL: {claimUrl}");
+            // Console.WriteLine($"[CredentialIssuance] Credential Offer URI: {credentialOfferUri}");
+            // Console.WriteLine($"[CredentialIssuance] Claim URL: {claimUrl}");
+            // Console.WriteLine($"[CredentialIssuance] Issuance ID: {issuanceResponse?.IssuanceId}");
+            // Console.WriteLine($"[CredentialIssuance] TX Code: {issuanceResponse?.TxCode}");
+            // Console.WriteLine($"[CredentialIssuance] Expires In: {issuanceResponse?.ExpiresIn} seconds");
 
             TempData["IssuanceMessage"] = $"{credentialTypeId} Credential issued. Check logs for details.";
             TempData["CredentialOfferUri"] = credentialOfferUri;
@@ -75,6 +89,8 @@ namespace Affinidi_Login_Demo_App.Pages
 
         public async Task<IActionResult> OnPostIssuePersonalInfo([FromForm] bool revocablePersonalInfo, [FromForm] bool expiryPersonalInfo)
         {
+            // Console.WriteLine($"[CredentialIssuance] OnPostIssuePersonalInfo triggered - Revocable: {revocablePersonalInfo}, Expiry: {expiryPersonalInfo}");
+
             // Use a dynamic object to build the credential data
             dynamic credentialData = new
             {
@@ -110,6 +126,8 @@ namespace Affinidi_Login_Demo_App.Pages
 
         public async Task<IActionResult> OnPostIssueEducation([FromForm] bool revocableEducation, [FromForm] bool expiryEducation)
         {
+            // Console.WriteLine($"[CredentialIssuance] OnPostIssueEducation triggered - Revocable: {revocableEducation}, Expiry: {expiryEducation}");
+
             dynamic credentialData = new
             {
                 candidateDetails = new
@@ -158,6 +176,8 @@ namespace Affinidi_Login_Demo_App.Pages
 
         public async Task<IActionResult> OnPostIssueEmployment([FromForm] bool revocableEmployment, [FromForm] bool expiryEmployment)
         {
+            // Console.WriteLine($"[CredentialIssuance] OnPostIssueEmployment triggered - Revocable: {revocableEmployment}, Expiry: {expiryEmployment}");
+
             dynamic credentialData = new
             {
                 candidateDetails = new
@@ -216,6 +236,8 @@ namespace Affinidi_Login_Demo_App.Pages
 
         public async Task<IActionResult> OnPostIssueResidence([FromForm] bool revocableResidence, [FromForm] bool expiryResidence)
         {
+            // Console.WriteLine($"[CredentialIssuance] OnPostIssueResidence triggered - Revocable: {revocableResidence}, Expiry: {expiryResidence}");
+
             dynamic credentialData = new
             {
                 address = new
@@ -255,6 +277,8 @@ namespace Affinidi_Login_Demo_App.Pages
 
         public async Task<IActionResult> OnPostIssueBatch([FromForm] bool revocableBatch, [FromForm] bool expiryBatch)
         {
+            // Console.WriteLine($"[CredentialIssuance] OnPostIssueBatch triggered - Revocable: {revocableBatch}, Expiry: {expiryBatch}");
+
             var data = new List<CredentialData>();
 
             // Create and conditionally add each credential to the list
@@ -481,15 +505,17 @@ namespace Affinidi_Login_Demo_App.Pages
             };
 
             var credentialsClient = new CredentialsClient();
-            //Console.WriteLine($"Batch Issuance Input: {JsonConvert.SerializeObject(issuanceInput, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore })}");
+            // Console.WriteLine($"[CredentialIssuance] Calling batch IssuanceStart API with {data.Count} credentials");
+            // Console.WriteLine($"[CredentialIssuance] Batch Issuance Input: {JsonConvert.SerializeObject(issuanceInput, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore })}");
+
             var issuanceResponse = await credentialsClient.IssuanceStart(issuanceInput);
-            //Console.WriteLine($"Batch Issuance Response: {JsonConvert.SerializeObject(issuanceResponse)}");
+            // Console.WriteLine($"[CredentialIssuance] Batch Issuance Response: {JsonConvert.SerializeObject(issuanceResponse)}");
 
             var credentialOfferUri = issuanceResponse?.CredentialOfferUri ?? "";
             var vaultUrl = Environment.GetEnvironmentVariable("PUBLIC_VAULT_URL") ?? "https://vault.affinidi.com";
             var claimUrl = $"{vaultUrl}/claim?credential_offer_uri={Uri.EscapeDataString(credentialOfferUri)}";
 
-            //Console.WriteLine($"Claim URL: {claimUrl}");
+            // Console.WriteLine($"[CredentialIssuance] Batch Claim URL: {claimUrl}");
 
             TempData["IssuanceMessage"] = "Batch Credential issuance process completed. Check logs for details.";
             TempData["ClaimUrl"] = claimUrl;
@@ -502,6 +528,8 @@ namespace Affinidi_Login_Demo_App.Pages
 
         public async Task<IActionResult> OnPostIssueCustom([FromForm] bool revocableCustom, [FromForm] bool expiryCustom)
         {
+            // Console.WriteLine($"[CredentialIssuance] OnPostIssueCustom triggered - Revocable: {revocableCustom}, Expiry: {expiryCustom}");
+
             // Similar approach can be used here for dynamic data
             TempData["IssuanceMessage"] = "Custom Credential issuance process initiated. Check your backend logs for details.";
             return RedirectToPage();
@@ -509,6 +537,37 @@ namespace Affinidi_Login_Demo_App.Pages
 
         public async Task<IActionResult> OnPostCheckCredentialStatus()
         {
+            // Console.WriteLine($"[CredentialIssuance] OnPostCheckCredentialStatus triggered");
+
+            // Use the bound property from the form
+            var issuanceId = IssuanceId ?? string.Empty;
+
+            // Console.WriteLine($"[CheckCredentialStatus] Retrieved IssuanceId from form: {issuanceId}");
+
+            if (string.IsNullOrEmpty(issuanceId))
+            {
+                // Console.WriteLine("[CheckCredentialStatus] Missing IssuanceId.");
+                TempData["StatusMessage"] = "Cannot check status: IssuanceId is missing.";
+                return RedirectToPage();
+            }
+
+            try
+            {
+                var credentialsClient = new CredentialsClient();
+                // Console.WriteLine("[CheckCredentialStatus] Calling IssuanceStatus...");
+                var statusResponse = await credentialsClient.IssuanceStatus(issuanceId);
+
+                // Console.WriteLine($"[CheckCredentialStatus] Response: {JsonConvert.SerializeObject(statusResponse)}");
+
+                TempData["StatusMessage"] = $"Credential status retrieved successfully. Check logs for details.";
+                TempData["StatusResponse"] = JsonConvert.SerializeObject(statusResponse, Formatting.Indented);
+            }
+            catch (Exception ex)
+            {
+                // Console.WriteLine($"[CheckCredentialStatus] Exception: {ex.Message}");
+                // Console.WriteLine($"[CheckCredentialStatus] Stack trace: {ex.StackTrace}");
+                TempData["StatusMessage"] = $"Error checking credential status: {ex.Message}";
+            }
 
             return RedirectToPage();
         }

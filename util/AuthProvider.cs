@@ -41,10 +41,12 @@ namespace Affinidi_Login_Demo_App.Util
 
         public AuthProvider(AuthProviderParams param)
         {
+            // Console.WriteLine("[AuthProvider] Initializing AuthProvider");
             apiGatewayUrl = param.ApiGatewayUrl ?? "";
             tokenEndpoint = param.TokenEndpoint ?? "https://dummy-token-endpoint";
             if (string.IsNullOrEmpty(param.PrivateKey) || string.IsNullOrEmpty(param.ProjectId) || string.IsNullOrEmpty(param.TokenId))
             {
+                // Console.WriteLine("[AuthProvider] ERROR: Missing required parameters (privateKey, projectId, or tokenId)");
                 throw new ArgumentException("Missing parameters. Please provide privateKey, projectId and tokenId.");
             }
             projectId = param.ProjectId;
@@ -52,6 +54,7 @@ namespace Affinidi_Login_Demo_App.Util
             keyId = param.KeyId ?? param.TokenId;
             privateKey = param.PrivateKey;
             passphrase = param.Passphrase;
+            // Console.WriteLine($"[AuthProvider] Initialized with ProjectId: {projectId}, TokenId: {tokenId}");
             _projectScopedTokenInstance = new ProjectScopedToken();
             jwt = new Jwt();
             iotaInstance = new Iota();
@@ -69,20 +72,26 @@ namespace Affinidi_Login_Demo_App.Util
 
         public async Task<string> FetchProjectScopedTokenAsync()
         {
-            //Console.WriteLine($"Fetching project-scoped token for Project ID: {projectId}");
+            // Console.WriteLine($"[AuthProvider] Fetching project-scoped token for Project ID: {projectId}");
             bool shouldRefreshToken = await ShouldRefreshToken();
             if (shouldRefreshToken)
             {
-                projectScopedToken = await _projectScopedTokenInstance.FetchProjectScopedTokenAsync(apiGatewayUrl, projectId, tokenId, tokenEndpoint, privateKey, keyId, passphrase);
+                // Console.WriteLine($"[AuthProvider] Token needs refresh, fetching new token");
+                projectScopedToken = await _projectScopedTokenInstance.FetchProjectScopedTokenAsync(apiGatewayUrl, projectId, tokenId, tokenEndpoint, privateKey, keyId, passphrase) ?? string.Empty;
+                // Console.WriteLine($"[AuthProvider] New token acquired (length: {projectScopedToken?.Length ?? 0})");
             }
-            //Console.WriteLine($"Using project-scoped token: {projectScopedToken}");
+            else
+            {
+                // Console.WriteLine($"[AuthProvider] Using existing token");
+            }
 
             return projectScopedToken;
         }
 
-        public IotaTokenOutput CreateIotaToken(string iotaConfigId, string did, string iotaSessionId = null)
+        public IotaTokenOutput CreateIotaToken(string iotaConfigId, string did, string? iotaSessionId = null)
         {
             string sessionId = iotaSessionId ?? Guid.NewGuid().ToString();
+            // Console.WriteLine($"[AuthProvider] Creating Iota token for session: {sessionId}");
             return new IotaTokenOutput
             {
                 IotaJwt = iotaInstance.SignIotaJwt(projectId, iotaConfigId, sessionId, keyId, tokenId, passphrase, privateKey, did),

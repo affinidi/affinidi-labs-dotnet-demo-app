@@ -73,8 +73,11 @@ namespace Affinidi_Login_Demo_App.Util
         }
         public virtual async Task<ApiResponse<StartIssuanceResponse>> StartIssuanceAsync(string projectId, StartIssuanceInput input)
         {
+            // Console.WriteLine($"[IssuanceApi] StartIssuanceAsync called for project: {projectId}");
             var localVarPath = $"cis/v1/{Uri.EscapeDataString(projectId)}/issuance/start";
             var fullUrl = new Uri(new Uri(_config.BasePath), localVarPath).ToString();
+            // Console.WriteLine($"[IssuanceApi] Request URL: {fullUrl}");
+
             var token = await _authProvider.FetchProjectScopedTokenAsync();
 
             // Use System.Text.Json with options to ignore null values
@@ -86,8 +89,7 @@ namespace Affinidi_Login_Demo_App.Util
 
             var jsonPayload = System.Text.Json.JsonSerializer.Serialize(input, options);
 
-            //Console.WriteLine($"Issuance API request: {jsonPayload}");
-            //Console.WriteLine($"Authorization token: {token}");
+            // Console.WriteLine($"[IssuanceApi] Request Payload: {jsonPayload}");
 
             using var httpClient = new HttpClient();
             httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -96,18 +98,22 @@ namespace Affinidi_Login_Demo_App.Util
                 Content = new StringContent(jsonPayload, System.Text.Encoding.UTF8, "application/json")
             };
             var response = await httpClient.SendAsync(request);
+            var responseBody = await response.Content.ReadAsStringAsync();
+
             if (response.IsSuccessStatusCode)
             {
-                var responseBody = await response.Content.ReadAsStringAsync();
+                // Console.WriteLine($"[IssuanceApi] Response Status: {response.StatusCode}");
+                // Console.WriteLine($"[IssuanceApi] Response Body: {responseBody}");
                 var data = System.Text.Json.JsonSerializer.Deserialize<StartIssuanceResponse>(responseBody);
-                //Console.WriteLine($"Issuance API response: {responseBody}");
-                //Console.WriteLine($"CredentialOfferUri: {data?.CredentialOfferUri}");
-                //Console.WriteLine($"IssuanceId: {data?.IssuanceId}");
-                //Console.WriteLine($"ExpiresIn: {data?.ExpiresIn}");
-                //Console.WriteLine($"TxCode: {data?.TxCode}");
+                // Console.WriteLine($"[IssuanceApi] CredentialOfferUri: {data?.CredentialOfferUri}");
+                // Console.WriteLine($"[IssuanceApi] IssuanceId: {data?.IssuanceId}");
+                // Console.WriteLine($"[IssuanceApi] ExpiresIn: {data?.ExpiresIn}");
+                // Console.WriteLine($"[IssuanceApi] TxCode: {data?.TxCode}");
                 return new ApiResponse<StartIssuanceResponse> { Data = data };
             }
-            //Console.WriteLine($"Issuance API error: {response.StatusCode}");
+
+            // Console.WriteLine($"[IssuanceApi] Error Response Status: {response.StatusCode}");
+            // Console.WriteLine($"[IssuanceApi] Error Response Body: {responseBody}");
             return new ApiResponse<StartIssuanceResponse> { Data = null };
         }
         public virtual async Task<ApiResponse<IssuanceStatusResponse>> GetIssuanceStatusAsync(
@@ -115,27 +121,36 @@ namespace Affinidi_Login_Demo_App.Util
     string issuanceId
     )
 {
+    // Console.WriteLine($"[IssuanceApi] GetIssuanceStatusAsync called for IssuanceId: {issuanceId}");
     var projectId = Environment.GetEnvironmentVariable("PROJECT_ID") ?? string.Empty;
     var configurationId = Environment.GetEnvironmentVariable("CONFIGURATION_ID") ?? string.Empty;
 
+    // Console.WriteLine($"[IssuanceApi] Using ProjectId: {projectId}");
+    // Console.WriteLine($"[IssuanceApi] Using ConfigurationId: {configurationId}");
+
     var localVarPath = $"cis/v1/{Uri.EscapeDataString(projectId)}/configurations/{Uri.EscapeDataString(configurationId)}/issuances/{Uri.EscapeDataString(issuanceId)}/credentials";
     var fullUrl = new Uri(new Uri(_config.BasePath), localVarPath).ToString();
+    // Console.WriteLine($"[IssuanceApi] Request URL: {fullUrl}");
+
     var token = await _authProvider.FetchProjectScopedTokenAsync();
 
     using var httpClient = new HttpClient();
     httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
     var response = await httpClient.GetAsync(fullUrl);
+    var responseBody = await response.Content.ReadAsStringAsync();
+
     if (response.IsSuccessStatusCode)
     {
-        var responseBody = await response.Content.ReadAsStringAsync();
+        // Console.WriteLine($"[IssuanceApi] Response Status: {response.StatusCode}");
+        // Console.WriteLine($"[IssuanceApi] Response Body: {responseBody}");
         var data = System.Text.Json.JsonSerializer.Deserialize<IssuanceStatusResponse>(responseBody);
-        //Console.WriteLine($"Issuance Status API response: {responseBody}");
         return new ApiResponse<IssuanceStatusResponse> { Data = data };
     }
     else
     {
-        //Console.WriteLine($"Issuance Status API error: {response.StatusCode}");
+        // Console.WriteLine($"[IssuanceApi] Error Response Status: {response.StatusCode}");
+        // Console.WriteLine($"[IssuanceApi] Error Response Body: {responseBody}");
         return new ApiResponse<IssuanceStatusResponse> { Data = null };
     }
 }
@@ -167,6 +182,7 @@ namespace Affinidi_Login_Demo_App.Util
 
         public CredentialsClient()
         {
+            // Console.WriteLine("[CredentialsClient] Initializing CredentialsClient");
 
             _authProviderParams = new AuthProviderParams
             {
@@ -178,12 +194,16 @@ namespace Affinidi_Login_Demo_App.Util
                 ApiGatewayUrl = System.Environment.GetEnvironmentVariable("API_GATEWAY_URL") ?? string.Empty,
                 TokenEndpoint = System.Environment.GetEnvironmentVariable("TOKEN_ENDPOINT") ?? string.Empty
             };
+
+            // Console.WriteLine($"[CredentialsClient] ProjectId: {_authProviderParams.ProjectId}");
+            // Console.WriteLine($"[CredentialsClient] ApiGatewayUrl: {_authProviderParams.ApiGatewayUrl}");
+
             AuthProvider authProvider = new AuthProvider(_authProviderParams);
 
 
             // Assuming SDK configuration objects
             var issuanceConfig = new IssuanceConfiguration { BasePath = $"{_authProviderParams.ApiGatewayUrl}/cis" };
-            //Console.WriteLine($"Issuance API Base Path: {issuanceConfig.BasePath}");
+            Console.WriteLine($"[CredentialsClient] Issuance API Base Path: {issuanceConfig.BasePath}");
             _issuanceApi = new IssuanceApi(authProvider, issuanceConfig);
 
 
@@ -191,17 +211,18 @@ namespace Affinidi_Login_Demo_App.Util
 
         public async Task<StartIssuanceResponse> IssuanceStart(StartIssuanceInput apiData)
         {
-            //Console.WriteLine($"StartIssuanceAsync called with Project ID: {_authProviderParams.ProjectId}");
+            Console.WriteLine($"[CredentialsClient] IssuanceStart called with Project ID: {_authProviderParams.ProjectId}");
             var response = await _issuanceApi.StartIssuanceAsync(_authProviderParams.ProjectId, apiData);
-            return response.Data;
+            return response.Data ?? new StartIssuanceResponse();
         }
 
 
 
         public async Task<IssuanceStatusResponse> IssuanceStatus(string issuanceId)
         {
+            Console.WriteLine($"[CredentialsClient] IssuanceStatus called for IssuanceId: {issuanceId}");
             var response = await _issuanceApi.GetIssuanceStatusAsync(issuanceId);
-            return response.Data;
+            return response.Data ?? new IssuanceStatusResponse();
         }
 
 
