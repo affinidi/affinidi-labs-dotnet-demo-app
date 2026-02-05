@@ -121,7 +121,7 @@ namespace Affinidi_Login_Demo_App.Pages
                 verificationRemarks = "Done"
             };
 
-            return await IssueCredential(Environment.GetEnvironmentVariable("PUBLIC_CREDENTIAL_TYPE_ID") ?? "AvvanzPersonalInformationVerification", credentialData, revocablePersonalInfo, expiryPersonalInfo);
+            return await IssueCredential(Environment.GetEnvironmentVariable("PERSONAL_INFORMATION_CREDENTIAL_TYPE_ID") ?? "AvvanzPersonalInformationVerification", credentialData, revocablePersonalInfo, expiryPersonalInfo);
         }
 
         public async Task<IActionResult> OnPostIssueEducation([FromForm] bool revocableEducation, [FromForm] bool expiryEducation)
